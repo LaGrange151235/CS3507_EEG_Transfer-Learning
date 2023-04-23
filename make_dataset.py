@@ -107,10 +107,6 @@ def get_data(data):
 
 def make_datasets():
     data = load_all_data()
-    test_data_lists = []
-    test_label_lists = []
-    train_data_lists = []
-    train_label_lists = []
 
     for test_session_id in range(len(data[0])):
         dataset_path = "./data/SEED-IV_concatenate/"+str(test_session_id)+"/"
@@ -123,10 +119,10 @@ def make_datasets():
         train_label_list = []
         for experiment_id in range(len(data)):
             raw_train_data, raw_train_label, raw_test_data, raw_test_label = get_data(data[experiment_id][test_session_id])
-            test_data_list.append(raw_test_data)
-            test_label_list.append(raw_test_label)
+            test_data_list.append(raw_train_data)
+            test_label_list.append(raw_train_label)
             for session_id in range(len(data[experiment_id])):
-                if session_id == experiment_id:
+                if session_id == test_session_id:
                     continue
                 else:
                     raw_train_data, raw_train_label, raw_test_data, raw_test_label = get_data(data[experiment_id][session_id])
@@ -135,17 +131,14 @@ def make_datasets():
 
         test_data_list = np.concatenate(test_data_list)
         test_label_list = np.concatenate(test_label_list)
-        test_data_lists.append(test_data_list)
-        test_label_lists.append(test_label_list)
         train_data_list = np.concatenate(train_data_list)
         train_label_list = np.concatenate(train_label_list)
-        train_data_lists.append(train_data_list)
-        train_label_lists.append(train_label_list)
 
         train_data_array = np.array(train_data_list)
         test_data_array = np.array(test_data_list)
         train_label_array = np.array(train_label_list)
         test_label_array = np.array(test_label_list)
+
         np.save(dataset_path+"train_data.npy", train_data_array)
         np.save(dataset_path+"test_data.npy", test_data_array)
         np.save(dataset_path+"train_label.npy", train_label_array)
@@ -153,10 +146,6 @@ def make_datasets():
 
 def make_datasets_unfold():
     data = load_all_data()
-    test_data_lists = []
-    test_label_lists = []
-    train_data_lists = []
-    train_label_lists = []
 
     for test_session_id in range(len(data[0])):
         dataset_path = "./data/SEED-IV_concatenate_unfold/"+str(test_session_id)+"/"
@@ -179,7 +168,7 @@ def make_datasets_unfold():
             test_data_list.append(raw_train_data)
             test_label_list.append(raw_train_label)
             for session_id in range(len(data[experiment_id])):
-                if session_id == experiment_id:
+                if session_id == test_session_id:
                     continue
                 else:
                     raw_train_data, raw_train_label, raw_test_data, raw_test_label = get_data(data[experiment_id][session_id])
@@ -195,12 +184,8 @@ def make_datasets_unfold():
 
         test_data_list = np.concatenate(test_data_list)
         test_label_list = np.concatenate(test_label_list)
-        test_data_lists.append(test_data_list)
-        test_label_lists.append(test_label_list)
         train_data_list = np.concatenate(train_data_list)
         train_label_list = np.concatenate(train_label_list)
-        train_data_lists.append(train_data_list)
-        train_label_lists.append(train_label_list)
 
         train_data_array = np.array(train_data_list)
         test_data_array = np.array(test_data_list)
@@ -210,7 +195,6 @@ def make_datasets_unfold():
         np.save(dataset_path+"test_data.npy", test_data_array)
         np.save(dataset_path+"train_label.npy", train_label_array)
         np.save(dataset_path+"test_label.npy", test_label_array)
-
 
 def make_reshape_datasets():
     data = load_all_data()
@@ -232,10 +216,10 @@ def make_reshape_datasets():
             raw_train_data, raw_train_label, raw_test_data, raw_test_label = get_data(data[experiment_id][test_session_id])
             raw_test_data = raw_reshape(raw_test_data)
             raw_train_data = raw_reshape(raw_train_data)
-            test_data_list.append(raw_test_data)
-            test_label_list.append(raw_test_label)
+            test_data_list.append(raw_train_data)
+            test_label_list.append(raw_train_label)
             for session_id in range(len(data[experiment_id])):
-                if session_id == experiment_id:
+                if session_id == test_session_id:
                     continue
                 else:
                     raw_train_data, raw_train_label, raw_test_data, raw_test_label = get_data(data[experiment_id][session_id])
@@ -264,5 +248,5 @@ def make_reshape_datasets():
 
 if __name__=="__main__":
     #make_datasets()
-    make_datasets_unfold()
-    #make_reshape_datasets()
+    #make_datasets_unfold()
+    make_reshape_datasets()

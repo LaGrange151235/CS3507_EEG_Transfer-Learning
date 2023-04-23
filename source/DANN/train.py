@@ -29,17 +29,25 @@ def test(model, test_dataloader, device, alpha=0):
     with torch.no_grad():
         for i in range(len(test_dataloader)):
             target_data = target_iter._next_data()
-            t_img, t_label = target_data
-            t_img = t_img.to(device)
-            t_label = t_label.long().to(device)
-            batch_size = len(t_label)
+            target_value, target_label = target_data
+            target_value = target_value.to(device)
+            target_label = target_label.long().to(device)
+            batch_size = len(target_label)
 
-            class_output, _ = model(input_data=t_img, alpha=alpha)
+            class_output, _ = model(input_data=target_value, alpha=alpha)
             pred = class_output.data.max(1, keepdim=True)[1]
-            n_correct += pred.eq(t_label.data.view_as(pred)).cpu().sum()
+            n_correct += pred.eq(target_label.data.view_as(pred)).cpu().sum()
             n_total += batch_size
         accuracy = float(n_correct) / n_total
         return accuracy
+
+def normalize_data(data):
+    data=torch.from_numpy(data)
+    mean=data.mean(dim=0, keepdim=True)
+    standard = data.std(dim=0, unbiased=True, keepdim=True)
+    data = (data-mean)/standard
+    data = np.array(data)
+    return data
 
 def train(id):
     dataset_path = "./data/SEED-IV_concatenate_unfold/"+str(id)+"/"
@@ -48,17 +56,8 @@ def train(id):
     test_data = np.load(dataset_path+"test_data.npy")
     test_label = np.load(dataset_path+"test_label.npy")
 
-    train_data = torch.from_numpy(train_data)
-    m = train_data.mean(dim = 0, keepdim=True)
-    s = train_data.std(dim=0, unbiased=True, keepdim=True)
-    train_data = (train_data-m)/s
-    train_data = np.array(train_data)
-
-    test_data = torch.from_numpy(test_data)
-    m = test_data.mean(dim = 0, keepdim=True)
-    s = test_data.std(dim=0, unbiased=True, keepdim=True)
-    test_data = (test_data-m)/s
-    test_data = np.array(test_data)
+    train_data = normalize_data(train_data)
+    test_data = normalize_data(test_data)
 
     #print(train_data.shape, train_label.shape, test_data.shape, test_label.shape)
 
@@ -67,6 +66,7 @@ def train(id):
     n_epoch = 100
     lr = 1e-3
     momentum = 0.5
+
     model = DANN(momentum=momentum).to(device)
     for param in model.parameters():
         param.requires_grad = True
@@ -84,6 +84,7 @@ def train(id):
     train_acc_list = []
     test_acc_list = []
 
+    '''train'''
     for epoch in range(n_epoch):
         len_dataloader = min(len(train_dataloader), len(test_dataloader))
         source_iter = iter(train_dataloader)
@@ -94,37 +95,33 @@ def train(id):
             p = float(i + epoch * len_dataloader) / n_epoch / len_dataloader
             alpha = 0.5 * (2. / (1. + np.exp(-10 * p)) - 1)
 
-            sorce_data = source_iter._next_data()
-            s_data, s_label = sorce_data
+            source_data = source_iter._next_data()
+            source_value, source_label = source_data
 
             optimizer.zero_grad()
-            batch_size = len(s_label)
-            s_domain_label = torch.zeros(batch_size).long()
+            batch_size = len(source_label)
+            source_domain_label = torch.zeros(batch_size).long()
 
-            s_data = s_data.to(device)
-            s_label = s_label.long().to(device)
-            s_domain_label = s_domain_label.to(device)
+            source_value = source_value.to(device)
+            source_label = source_label.long().to(device)
+            source_domain_label = source_domain_label.long().to(device)
 
-            s_class_pred, s_domain_pred = model(input_data=s_data, alpha=alpha)
-            s_class_loss = class_loss(s_class_pred, s_label)
-            s_domain_loss = domain_loss(s_domain_pred, s_domain_label)
-
-
+            source_class_pred, source_domain_pred = model(input_data=source_value, alpha=alpha)
+            source_class_loss = class_loss(source_class_pred, source_label)
+            source_domain_loss = domain_loss(source_domain_pred, source_domain_label)
             
             target_data = target_iter._next_data()
-            t_data, t_label = target_data
+            target_value, target_label = target_data
             
-            batch_size = len(t_data)
-            t_domain_label = torch.ones(batch_size).long()
+            batch_size = len(target_value)
+            target_value = target_value.to(device)
+            target_label = target_label.long().to(device)
+            target_domain_label = torch.ones(batch_size).long().to(device)
 
-            t_data = t_data.to(device)
-            t_domain_label = t_domain_label.to(device)
+            target_class_pred, target_domain_pred = model(input_data=target_value, alpha=alpha)
+            target_domain_loss = domain_loss(target_domain_pred, target_domain_label)
 
-            t_class_pred, t_domain_pred = model(input_data=t_data, alpha=alpha)
-            t_domain_loss = domain_loss(t_domain_pred, t_domain_label)
-
-            loss = s_class_loss + s_domain_loss + t_domain_loss
-            #print("test_session_id: %d, iter_id: %d, s_class_loss: %.4f, s_domain_loss: %.4f, t_domain_loss: %.4f" % (id, i, s_class_loss, s_domain_loss, t_domain_loss))
+            loss = source_class_loss + source_domain_loss + target_domain_loss
             loss.backward()
             optimizer.step()
 
@@ -133,7 +130,10 @@ def train(id):
         train_acc_list.append(train_acc)
         test_acc_list.append(test_acc)
 
-        save_path = "model_"+str(id)+"_epoch_"+str(epoch)+".pt"
+        save_path = "./model/DANN/"
+        if os.path.exists(save_path) == False:
+            os.makedirs(save_path)
+        save_path = save_path+"model_"+str(id)+"_epoch_"+str(epoch)+".pt"
         torch.save(model, save_path)
 
         print("test_session_id: %d, epoch: %d, train_acc: %.4f, test_acc: %.4f" % (id, epoch, train_acc, test_acc))
@@ -146,8 +146,8 @@ def train(id):
         if i==max_test_acc_idx:
             continue
         else:
-            command = "rm model_"+str(id)+"_epoch_"+str(i)+".pt"
-            os.system(command)
+            command = "rm ./model/DANN/model_"+str(id)+"_epoch_"+str(i)+".pt"
+            os.system(command)    
     return max_train_acc, max_train_acc_idx, max_test_acc, max_test_acc_idx
 
 def train_process(i, max_train_acc_list, max_test_acc_list):
@@ -162,15 +162,6 @@ if __name__=="__main__":
 
     for i in range(15):
         train_process(i, max_train_acc_list, max_test_acc_list)
-
-    #thread_list = []
-    #for i in range(15):
-    #    t = threading.Thread(target=train_process, args=(i, max_train_acc_list, max_test_acc_list, ))
-    #    thread_list.append(t)
-    #for t in thread_list:
-    #    t.start()
-    #for t in thread_list:
-    #    t.join()
 
     avg_train_acc = float(sum(max_train_acc_list)) / len(max_train_acc_list)
     avg_test_acc = float(sum(max_test_acc_list)) / len(max_test_acc_list)
