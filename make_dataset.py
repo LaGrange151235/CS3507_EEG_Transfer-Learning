@@ -154,8 +154,10 @@ def make_datasets_unfold():
         
         test_data_list = []
         test_label_list = []
+        test_domain_list = []
         train_data_list = []
         train_label_list = []
+        train_domain_list = []
         for experiment_id in range(len(data)):
             raw_train_data, raw_train_label, raw_test_data, raw_test_label = get_data(data[experiment_id][test_session_id])
             
@@ -165,8 +167,14 @@ def make_datasets_unfold():
             raw_list = np.array(raw_list)
             raw_train_data = raw_list
 
+            domain_list = np.zeros(len(raw_train_data))
+            for i in range(len(domain_list)):
+                domain_list[i] = test_session_id
+
             test_data_list.append(raw_train_data)
             test_label_list.append(raw_train_label)
+            test_domain_list.append(domain_list)
+
             for session_id in range(len(data[experiment_id])):
                 if session_id == test_session_id:
                     continue
@@ -179,22 +187,33 @@ def make_datasets_unfold():
                     raw_list = np.array(raw_list)
                     raw_train_data = raw_list
 
+                    domain_list = np.zeros(len(raw_train_data))
+                    for i in range(len(domain_list)):
+                        domain_list[i] = session_id
+
                     train_data_list.append(raw_train_data)
                     train_label_list.append(raw_train_label)
+                    train_domain_list.append(domain_list)
 
         test_data_list = np.concatenate(test_data_list)
         test_label_list = np.concatenate(test_label_list)
+        test_domain_list = np.concatenate(test_domain_list)
         train_data_list = np.concatenate(train_data_list)
         train_label_list = np.concatenate(train_label_list)
+        train_domain_list = np.concatenate(train_domain_list)
 
         train_data_array = np.array(train_data_list)
         test_data_array = np.array(test_data_list)
         train_label_array = np.array(train_label_list)
         test_label_array = np.array(test_label_list)
+        train_domain_array = np.array(train_domain_list)
+        test_domain_array = np.array(test_domain_list)
         np.save(dataset_path+"train_data.npy", train_data_array)
         np.save(dataset_path+"test_data.npy", test_data_array)
         np.save(dataset_path+"train_label.npy", train_label_array)
         np.save(dataset_path+"test_label.npy", test_label_array)
+        np.save(dataset_path+"train_domain.npy", train_domain_array)
+        np.save(dataset_path+"test_domain.npy", test_domain_array)
 
 def make_reshape_datasets():
     data = load_all_data()
@@ -248,5 +267,5 @@ def make_reshape_datasets():
 
 if __name__=="__main__":
     #make_datasets()
-    #make_datasets_unfold()
-    make_reshape_datasets()
+    make_datasets_unfold()
+    #make_reshape_datasets()
