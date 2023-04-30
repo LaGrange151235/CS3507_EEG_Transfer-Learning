@@ -49,4 +49,4 @@ pip install -r requirements.txt
    python [path to source code]/test.py --path [path to model files]
    ```
 ---
-You can also find the experiment result (both logs and models) at <a href="https://jbox.sjtu.edu.cn/l/i1Nkpa"><img src="https://jbox.sjtu.edu.cn/v2/config/get_file?config_type=0&config_id=0&name=custom_main_logo" width="80"></a>.
+You can also find the experiment result (both logs and models) at [jbox](https://jbox.sjtu.edu.cn/l/i1Nkpa).
