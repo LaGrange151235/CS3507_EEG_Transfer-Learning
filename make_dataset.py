@@ -1,6 +1,6 @@
-import torch.utils.data as Data
 import numpy as np
 import os
+import argparse
 
 data_path = "./data/SEED-IV/SEED-IV"
 
@@ -239,42 +239,17 @@ def make_reshape_datasets():
         np.save(dataset_path+"train_label.npy", train_label_array)
         np.save(dataset_path+"test_label.npy", test_label_array)
 
-def make_datasets_reshape_mixstyle():
-    data = load_all_data()
-
-    for domain_id in range(len(data[0])):
-        dataset_path = "./data/SEED-IV_concatenate_reshape_mixstyle/"+str(domain_id)+"/"
-        if os.path.exists(dataset_path)==False:
-            os.makedirs(dataset_path)
-        train_data_list = []
-        train_label_list = []
-        test_data_list = []
-        test_label_list = []
-        for experiment_id in range(len(data)):
-            raw_train_data, raw_train_label, raw_test_data, raw_test_label = get_data(data[experiment_id][domain_id])
-            raw_test_data = raw_reshape(raw_test_data)
-            raw_train_data = raw_reshape(raw_train_data)
-
-            train_data_list.append(raw_train_data)
-            train_label_list.append(raw_train_label)
-            test_data_list.append(raw_train_data)
-            test_label_list.append(raw_train_label)
-
-        test_data_list = np.concatenate(test_data_list)
-        test_label_list = np.concatenate(test_label_list)
-        train_data_list = np.concatenate(train_data_list)
-        train_label_list = np.concatenate(train_label_list)
-        train_data_array = np.array(train_data_list)
-        test_data_array = np.array(test_data_list)
-        train_label_array = np.array(train_label_list)
-        test_label_array = np.array(test_label_list)
-        np.save(dataset_path+"train_data.npy", train_data_array)
-        np.save(dataset_path+"test_data.npy", test_data_array)
-        np.save(dataset_path+"train_label.npy", train_label_array)
-        np.save(dataset_path+"test_label.npy", test_label_array)
-
 if __name__=="__main__":
-    #make_datasets()
-    #make_datasets_unfold()
-    make_datasets_reshape_mixstyle()
-    #make_reshape_datasets()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--mode", type=str, default="all")
+    args = parser.parse_args()
+    if args.mode == "default":
+        make_datasets()
+    elif args.mode == "unfold":
+        make_datasets_unfold()
+    elif args.mode == "reshape":
+        make_reshape_datasets()
+    else:
+        make_datasets()
+        make_datasets_unfold()
+        make_reshape_datasets()
